@@ -86,29 +86,29 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         listView = (ListView) findViewById(R.id.listView);
 
+        setup();
+        go();
+    }
+
+    public void setup() {
         TwitterAuthConfig authConfig = new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET);
         Twitter twitter = new Twitter(authConfig);
         Fabric.with(this, twitter);
-
-        getTweets();
     }
 
-    public void getTweets() {
+    public void go() {
         TwitterCore.getInstance().logInGuest(new Callback<AppSession>() {
             @Override
             public void success(Result<AppSession> appSessionResult) {
                 AppSession session = appSessionResult.data;
                 TwitterApiClient twitterApiClient = TwitterCore.getInstance().getApiClient(session);
+                // Get tweets
                 twitterApiClient.getStatusesService().userTimeline(null, TWITTER_USERID, fetchCount, null, null, false, false, false, true, new Callback<List<Tweet>>() {
                     @Override
                     public void success(Result<List<Tweet>> listResult) {
                         List<Tweet> tweetList = listResult.data;
-//                        Log.d(TAG, "got tweets: " + tweetList);
-//                        for (Tweet tweet : tweetList) {
-//                            Log.d(TAG, tweet.createdAt + " " + tweet.text);
-//                        }
-
-                        processTweets(tweetList);
+                        // Use tweets now that we have them
+                        processAndShowTweets(tweetList);
                     }
 
                     @Override
@@ -127,11 +127,15 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void processTweets(List<Tweet> tweetList) {
-        // Fetch photo for each tweet and store in a mutable arrayList
+    // Fetch photo for each tweet and store in a mutable arrayList. ArrayAdapter then shows the tweets.
+    // 2 bottlenecks exist:
+    // 1. Getting image URLs. Getty Images API only allows querying 5 terms per second.
+    // 2. Downloading images from URLs. This is more data than getting JSON text, but it's anonymous
+    // so it seems we can download them all at once.
+    public void processAndShowTweets(List<Tweet> tweetList) {
+        // Make a thread with a runnable for each tweet, then start them all.
         ArrayList<Thread> threads = new ArrayList<>();
-        for(int i = 0, delaySeconds = 0; i < tweetList.size(); i++) {
-            final Tweet tweet = tweetList.get(i);
+        for(final Tweet tweet : tweetList) {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -142,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
             threads.add(thread);
             thread.start();
         }
+        // Wait until all tweets are processed
         try {
             for (Thread thread : threads) {
                 thread.join();
@@ -150,13 +155,8 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-
+        // Now that images have been found and downloaded, display ProcessedTweets to the UI
         arrayAdapter = new TweetAdapter(this, android.R.layout.simple_list_item_1, tweets);
         listView.setAdapter(arrayAdapter);
     }
-
-
-
-
-
 }

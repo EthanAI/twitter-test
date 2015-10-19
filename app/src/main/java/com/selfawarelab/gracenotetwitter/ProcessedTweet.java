@@ -40,10 +40,11 @@ public class ProcessedTweet extends Tweet {
     private final String GETTY_SECRET = "BxfERGMCRmtfyewE4zrYSpxUf3cdN8Gj2fs8Q9fv2GMjc";
     private final SimpleDateFormat format = new SimpleDateFormat("EEE MMM dd HH:mm:ss '+0000' yyyy");
 
-    String queryTerm;
-    Date date;
-    String photoUrl;
-    Bitmap bitmap;
+    public String queryTerm;
+    public Date date;
+    public String photoUrl;
+    public Bitmap bitmap;
+
     ProcessedTweet(Tweet tweet) {
         super(tweet.coordinates, tweet.createdAt, tweet.currentUserRetweet, tweet.entities, tweet.favoriteCount,
                 tweet.favorited, tweet.filterLevel, tweet.id, tweet.idStr, tweet.inReplyToScreenName,
@@ -89,7 +90,6 @@ public class ProcessedTweet extends Tweet {
 
             // Process result. Getty Images gives JSON
             JSONObject jsonObject = new JSONObject(result);
-            JSONArray imageJSONArray = jsonObject.getJSONArray("images");
             JSONObject firstImageJSONObject = jsonObject.getJSONArray("images").getJSONObject(0);
             photoUrl = firstImageJSONObject.getJSONArray("display_sizes").getJSONObject(0).getString("uri");
 
@@ -130,6 +130,8 @@ public class ProcessedTweet extends Tweet {
         return bitmap;
     }
 
+    // This method handles the access limits. If code 403 is returned it means we are calling too
+    // fast. The method will wait one second before retrying
     public String httpGet(String url) {
         String responseString = "";
 

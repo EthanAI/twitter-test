@@ -45,5 +45,4 @@ public class TweetAdapter extends ArrayAdapter<ProcessedTweet> {
 
         return rowView;
     }
-
 }
