@@ -3,6 +3,7 @@ package com.selfawarelab.gracenotetwitter;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -89,14 +90,6 @@ another kind of item.
 When you finish, reply back with a short explanation of your design decisions and an archive of
 your code attached. You may use any third party libraries that help, just document this in your design decision
 explanation.
-
-    -Fetch tweets
-        -Text
-        -Date created
-        -Sortable
-    -Fetch images. Flickr / Wikimedia. This should be async
-    -
-
  */
 
 public class MainActivity extends AppCompatActivity {
@@ -118,22 +111,7 @@ public class MainActivity extends AppCompatActivity {
         arrayAdapter.sort(new Comparator<ProcessedTweet>() {
             @Override
             public int compare(ProcessedTweet t1, ProcessedTweet t2) {
-                int compareResult = 0; // No sorting when there is an error
-
-                try {
-                    // Get date from the date string
-                    String dateString1 = t1.createdAt;
-                    String dateString2 = t2.createdAt;
-                    SimpleDateFormat format = new SimpleDateFormat("EEE MMM dd HH:mm:ss '+0000' yyyy");
-                    Date date1 = format.parse(dateString1);
-                    Date date2 = format.parse(dateString2);
-
-                    compareResult = date1.compareTo(date2);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
-                return compareResult;
+                return t1.date.compareTo(t2.date);
             }
         });
     }
@@ -171,9 +149,9 @@ public class MainActivity extends AppCompatActivity {
                     public void success(Result<List<Tweet>> listResult) {
                         List<Tweet> tweetList = listResult.data;
 //                        Log.d(TAG, "got tweets: " + tweetList);
-                        for (Tweet tweet : tweetList) {
-                            Log.d(TAG, tweet.createdAt + " " + tweet.text);
-                        }
+//                        for (Tweet tweet : tweetList) {
+//                            Log.d(TAG, tweet.createdAt + " " + tweet.text);
+//                        }
 
                         processTweets(tweetList);
                     }
@@ -196,9 +174,27 @@ public class MainActivity extends AppCompatActivity {
 
     public void processTweets(List<Tweet> tweetList) {
         // Fetch photo for each tweet and store in a mutable arrayList
-        for(Tweet tweet : tweetList) {
-            tweets.add(new ProcessedTweet(tweet));
+        ArrayList<Thread> threads = new ArrayList<>();
+        for(int i = 0, delaySeconds = 0; i < tweetList.size(); i++) {
+            final Tweet tweet = tweetList.get(i);
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    ProcessedTweet processedTweet = new ProcessedTweet(tweet);
+                    tweets.add(processedTweet);
+                }
+            });
+            threads.add(thread);
+            thread.start();
         }
+        try {
+            for (Thread thread : threads) {
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
 
         arrayAdapter = new TweetAdapter(this, android.R.layout.simple_list_item_1, tweets);
         listView.setAdapter(arrayAdapter);

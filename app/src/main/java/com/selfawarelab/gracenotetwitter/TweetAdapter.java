@@ -1,6 +1,7 @@
 package com.selfawarelab.gracenotetwitter;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,8 @@ import java.util.ArrayList;
  * Created by esmith on 10/18/15.
  */
 public class TweetAdapter extends ArrayAdapter<ProcessedTweet> {
+    private final String TAG = this.getClass().getSimpleName();
+
     private final Context context;
     private final ArrayList<ProcessedTweet> processedTweets;
 
@@ -31,9 +34,14 @@ public class TweetAdapter extends ArrayAdapter<ProcessedTweet> {
         ProcessedTweet tweet = processedTweets.get(position);
 
         ImageView imageView = (ImageView) rowView.findViewById(R.id.imageView);
+        TextView dateTextView = (TextView) rowView.findViewById(R.id.dateTextView);
         TextView textView = (TextView) rowView.findViewById(R.id.textView);
 
+        //Log.d(TAG, "Image size: " + tweet.bitmap.getByteCount());
+
         imageView.setImageBitmap(tweet.bitmap);
+
+        dateTextView.setText(tweet.date.toString());
         textView.setText(tweet.text);
 
         return rowView;
