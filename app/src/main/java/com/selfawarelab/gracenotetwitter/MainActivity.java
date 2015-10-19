@@ -106,9 +106,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String TWITTER_KEY = "3m2UoJLnYMmNU5K5K4RdRSksu";
     private static final String TWITTER_SECRET = "iPsak6oEBmerVqrIDvrJzdAfDgdWURkkDfF8o0GdlzqLEGeCqc";
 
-    private static final String GETTY_KEY = "xyx4eqnrgc8gn8xr8762zqv8";
-    private static final String GETTY_SECRET = "BxfERGMCRmtfyewE4zrYSpxUf3cdN8Gj2fs8Q9fv2GMjc";
-
     // UI Elements
     private ListView listView;
     private ArrayAdapter<ProcessedTweet> arrayAdapter;
@@ -173,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void success(Result<List<Tweet>> listResult) {
                         List<Tweet> tweetList = listResult.data;
-                        Log.d(TAG, "got tweets: " + tweetList);
+//                        Log.d(TAG, "got tweets: " + tweetList);
                         for (Tweet tweet : tweetList) {
                             Log.d(TAG, tweet.createdAt + " " + tweet.text);
                         }
@@ -207,138 +204,8 @@ public class MainActivity extends AppCompatActivity {
         listView.setAdapter(arrayAdapter);
     }
 
-    public class ProcessedTweet extends Tweet {
-        String queryTerm;
-        String photoUrl;
-        Bitmap bitmap;
-        ProcessedTweet(Tweet tweet) {
-            super(tweet.coordinates, tweet.createdAt, tweet.currentUserRetweet, tweet.entities, tweet.favoriteCount,
-                    tweet.favorited, tweet.filterLevel, tweet.id, tweet.idStr, tweet.inReplyToScreenName,
-                    tweet.inReplyToStatusId, tweet.inReplyToStatusIdStr, tweet.inReplyToUserId, tweet.inReplyToUserIdStr,
-                    tweet.lang, tweet.place, tweet.possiblySensitive, tweet.scopes, tweet.retweetCount,
-                    tweet.retweeted, tweet.retweetedStatus, tweet.source, tweet.text, tweet.truncated,
-                    tweet.user, tweet.withheldCopyright, tweet.withheldInCountries, tweet.withheldScope);
 
-            queryTerm = getQueryTerm(tweet.text);
-            photoUrl = getPhotoUrl(queryTerm);
-            bitmap = getBitmap(photoUrl);
-        }
 
-        private String getQueryTerm(String text) {
-            String[] words = text.split(" ");
-            String query = words[0];
-            return query;
-        }
 
-        private String getPhotoUrl(String queryTerm) {
-            String photoUrl = "";
-            final String queryUrl = "https://api.gettyimages.com/v3/search/images?fields=id,title,thumb,referral_destinations&sort_order=best&phrase=" + queryTerm;
 
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Callable<String> callable = new Callable<String>() {
-                public String call() throws Exception {
-                    String response = httpGet(queryUrl);
-                    return response;
-                }
-            };
-
-            FutureTask<String> futureTask = new FutureTask<String>(callable);
-            executor.execute(futureTask);
-
-            try {
-                String result = futureTask.get();
-
-                // Process result. Getty Images gives JSON
-                JSONObject jsonObject = new JSONObject(result);
-                JSONArray imageJSONArray = jsonObject.getJSONArray("images");
-                JSONObject firstImageJSONObject = jsonObject.getJSONArray("images").getJSONObject(0);
-                photoUrl = firstImageJSONObject.getJSONArray("display_sizes").getJSONObject(0).getString("uri");
-
-                Log.d(TAG, "JSON: " + firstImageJSONObject.toString());
-                Log.d(TAG, "Image uri: " + photoUrl);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            return photoUrl;
-        }
-
-        private Bitmap getBitmap(final String urlString) {
-            Bitmap bitmap = null;
-
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Callable<Bitmap> callable = new Callable<Bitmap>() {
-                public Bitmap call() throws Exception {
-                    Bitmap bitmap = BitmapFactory.decodeStream((InputStream) new URL(urlString).getContent());
-                    return bitmap;
-                }
-            };
-
-            FutureTask<Bitmap> futureTask = new FutureTask<Bitmap>(callable);
-            executor.execute(futureTask);
-
-            try {
-                bitmap = futureTask.get();
-
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
-            return bitmap;
-        }
-
-    }
-
-    public class TweetAdapter extends ArrayAdapter<ProcessedTweet> {
-        private final Context context;
-        private final ArrayList<ProcessedTweet> processedTweets;
-
-        public TweetAdapter(Context context, int resource, ArrayList<ProcessedTweet> tweets) {
-            super(context, resource, tweets);
-            this.context = context;
-            this.processedTweets = tweets;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent)
-        {
-            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            View rowView = inflater.inflate(R.layout.list_item, parent, false);
-            ProcessedTweet tweet = tweets.get(position);
-
-            ImageView imageView = (ImageView) rowView.findViewById(R.id.imageView);
-            TextView textView = (TextView) rowView.findViewById(R.id.textView);
-
-            imageView.setImageBitmap(tweet.bitmap);
-            textView.setText(tweet.text);
-
-            return rowView;
-        }
-
-    }
-
-    public String httpGet(String url) {
-        String responseString = "";
-
-        try {
-            DefaultHttpClient httpClient = new DefaultHttpClient(new BasicHttpParams()); // Hmmm..
-            HttpGet httpGet = new HttpGet(url);
-            httpGet.setHeader("Api-Key", GETTY_KEY);
-
-            HttpResponse response = httpClient.execute(httpGet);
-            Log.d(TAG, "Response status: " + response.getStatusLine());
-            responseString = EntityUtils.toString(response.getEntity());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return responseString;
-    }
 }
