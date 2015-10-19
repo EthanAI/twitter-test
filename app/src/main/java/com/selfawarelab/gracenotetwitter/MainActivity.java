@@ -19,6 +19,12 @@ import com.twitter.sdk.android.tweetui.CompactTweetView;
 import com.twitter.sdk.android.tweetui.TweetUtils;
 import com.twitter.sdk.android.tweetui.TweetViewFetchAdapter;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import io.fabric.sdk.android.Fabric;
@@ -59,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TWITTER_KEY = "3m2UoJLnYMmNU5K5K4RdRSksu";
     private static final String TWITTER_SECRET = "iPsak6oEBmerVqrIDvrJzdAfDgdWURkkDfF8o0GdlzqLEGeCqc";
 
+    private ArrayList<Tweet> tweets = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,40 +77,9 @@ public class MainActivity extends AppCompatActivity {
         Fabric.with(this, twitter);
 
         getTweets();
-
     }
 
     public void getTweets() {
-        // TODO: Base this Tweet ID on some data from elsewhere in your app
-//        long tweetId = 631879971628183552L;
-        long tweetId = 655116638522466304L;
-//        TweetUtils.loadTweet(tweetId, new Callback<Tweet>() {
-//            @Override
-//            public void success(Result<Tweet> result) {
-//                Log.d("TwitterKit", "Success: " + result.data.createdAt + " " + result.data.text);
-//            }
-//
-//            @Override
-//            public void failure(TwitterException exception) {
-//                Log.d("TwitterKit", "Load Tweet failure", exception);
-//            }
-//        });
-
-//        TwitterApiClient twitterApiClient = TwitterCore.getInstance().getApiClient();
-//        StatusesService statusesService = twitterApiClient.getStatusesService();
-//        statusesService.userTimeline(null, "screen_name=twitterapi&count=2", null, null, null, null, null, null, null, new Callback<List<Tweet>>() {
-//            @Override
-//            public void success(Result<List<Tweet>> result) {
-//                List<Tweet> tweets = result.data;
-//                Log.d(TAG, "got tweets: " + tweets);
-//            }
-//
-//            @Override
-//            public void failure(TwitterException e) {
-//                Log.d(TAG, "Failed to get tweets");
-//            }
-//        });
-
         TwitterCore.getInstance().logInGuest( new Callback<AppSession>() {
             @Override
             public void success(Result<AppSession> appSessionResult) {
@@ -112,11 +88,13 @@ public class MainActivity extends AppCompatActivity {
                 twitterApiClient.getStatusesService().userTimeline(null, "seinfeldtoday", 10, null, null, false, false, false, true, new Callback<List<Tweet>>() {
                     @Override
                     public void success(Result<List<Tweet>> listResult) {
-                        List<Tweet> tweets = listResult.data;
-                        Log.d(TAG, "got tweets: " + tweets);
-                        for(Tweet tweet : tweets) {
+                        List<Tweet> tweetList = listResult.data;
+                        Log.d(TAG, "got tweets: " + tweetList);
+                        for(Tweet tweet : tweetList) {
                             Log.d(TAG, tweet.createdAt + " " + tweet.text);
                         }
+
+                        processTweets(tweetList);
                     }
 
                     @Override
@@ -133,6 +111,56 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         });
+    }
+
+    public void processTweets(List<Tweet> tweetList) {
+        for(Tweet tweet : tweetList) {
+            tweets.add(tweet);
+        }
+
+        Log.d(TAG, "*******Got tweets:");
+        for(Tweet tweet : tweets) {
+            Log.d(TAG, tweet.createdAt + " " + tweet.text);
+        }
+
+        // Sort by text
+        Collections.sort(tweets, new Comparator<Tweet>() {
+            @Override
+            public int compare(Tweet t1, Tweet t2) {
+                return t1.text.compareTo(t2.text);
+            }
+        });
+        Log.d(TAG, "*******Sorted by text:");
+        for(Tweet tweet : tweets) {
+            Log.d(TAG, tweet.createdAt + " " + tweet.text);
+        }
+
+        // Sort by date
+        Collections.sort(tweets, new Comparator<Tweet>() {
+            @Override
+            public int compare(Tweet t1, Tweet t2) {
+                int compareResult = 0; // No sorting when there is an error
+
+                try {
+                    // Get date from the date string
+                    String dateString1 = t1.createdAt;
+                    String dateString2 = t2.createdAt;
+                    SimpleDateFormat format = new SimpleDateFormat("EEE MMM dd HH:mm:ss '+0000' yyyy");
+                    Date date1 = format.parse(dateString1);
+                    Date date2 = format.parse(dateString2);
+
+                    compareResult = date1.compareTo(date2);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+
+                return compareResult;
+            }
+        });
+        Log.d(TAG, "*******Sorted by date:");
+        for(Tweet tweet : tweets) {
+            Log.d(TAG, tweet.createdAt + " " + tweet.text);
+        }
     }
 
 }
